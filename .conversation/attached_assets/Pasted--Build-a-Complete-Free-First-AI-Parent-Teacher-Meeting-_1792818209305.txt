@@ -1,0 +1,272 @@
+# Build a Complete Free-First AI Parent–Teacher Meeting Summarizer
+
+Act as a senior full-stack developer, AI speech-recognition engineer, and product designer. Build a complete, working application for transcribing and summarizing Parent–Teacher Meetings (PTMs).
+
+Do not just create a UI mockup or provide code snippets. Implement the actual working application, test the complete workflow, and provide clear instructions to run it.
+
+## 1. Main objective
+
+The application must take a recorded PTM audio file and produce:
+
+1. A complete, accurate transcript of the conversation.
+2. Automatic recognition of Hindi, English, and mixed Hindi-English (Hinglish).
+3. Correct identification of student names using an optional student roster.
+4. Speaker separation where supported.
+5. A short, useful summary of what actually happened in the meeting.
+6. Student performance observations, concerns, and agreed action items.
+7. Confidence indicators and a way to correct transcription mistakes.
+
+The application must prioritize transcription accuracy and factual summaries over attractive but misleading AI-generated insights.
+
+## 2. Technology and cost requirements
+
+Build a free-first solution with no mandatory paid subscription or API key.
+
+Preferred approach:
+- Python backend using FastAPI.
+- A clean, responsive web interface using React and TypeScript.
+- Local speech recognition using an appropriate multilingual Whisper implementation.
+- Support Apple Silicon Macs, especially an M1 MacBook Air with 8 GB RAM.
+- Use a model size appropriate for available memory. Allow users to choose a larger model if their hardware can handle it.
+- Run transcription locally whenever possible so the application works without a cloud API.
+- Add optional Groq and xAI Grok transcription providers through server-side API integrations.
+- Allow users to select the transcription provider in Settings.
+- Never claim that a paid API is free or bypass provider usage limits.
+- Keep all API keys in environment variables or another secure server-side secret store. Never expose them in frontend code.
+- If cloud services are unavailable, fall back to local transcription when configured and display a clear error otherwise.
+
+Use current, maintained libraries and official API documentation. Verify model identifiers, supported languages, request formats, file-size limits, and pricing before implementing external integrations.
+
+Do not require users to pay for a database, AI API, or hosting service for the basic local workflow.
+
+## 3. Audio input
+
+Support:
+- MP3
+- M4A
+- WAV
+- FLAC
+- MP4 audio tracks where practical
+- Other common formats supported by the chosen transcription engine
+
+Requirements:
+- Drag-and-drop upload.
+- File picker.
+- Audio playback controls.
+- Display the filename, duration, and file size.
+- Show processing progress.
+- Handle long recordings by splitting audio into manageable overlapping chunks.
+- Reassemble chunks in the correct order without duplicate or missing sentences.
+- Preserve timestamps and avoid cutting off speech at chunk boundaries.
+- Handle silence, background noise, and unsupported formats gracefully.
+- Provide useful error messages and a retry option.
+
+## 4. Transcription engine
+
+Create a proper transcription pipeline.
+
+Requirements:
+- Detect the spoken language automatically.
+- Support Hindi in Devanagari script, English, and natural code-switching between the two.
+- Do not translate the entire transcript into English by default.
+- Preserve the original meaning, names, school terminology, and conversational context.
+- Include punctuation and timestamps when supported.
+- Preserve the actual conversation rather than turning it into a summary.
+- Do not invent words to fill silent or unclear portions.
+- Mark uncertain words as [unclear] when they cannot be reliably recovered.
+- Provide word-level or segment-level timestamps when supported by the selected provider.
+- Keep the original transcript available even after generating a cleaned version.
+
+Use a multilingual Whisper model for local transcription. Implement Groq and Grok as optional providers behind a common transcription interface, with independent provider adapters.
+
+Do not assume every provider offers identical features. Disable unsupported features or explain their limitations.
+
+## 5. Student name accuracy
+
+Student names are especially important.
+
+Add a student roster feature where users can enter or import:
+- Student full name
+- Class and section
+- Roll number or student identifier
+- Optional common spelling variants
+
+Use the roster as contextual vocabulary when the transcription provider supports vocabulary hints or prompts.
+
+Important rules:
+- Never select a student merely because their name appears in the roster.
+- Do not replace an unclear name with the closest matching student without sufficient evidence.
+- If multiple names sound similar, flag the name for manual review.
+- If the name cannot be identified, display "Student not identified".
+- Show the original recognized text and any suggested correction.
+- Allow the user to confirm or reject a correction.
+- Store confirmed corrections in an optional school-specific vocabulary dictionary.
+
+If the provider supplies timestamps and confidence information, preserve them. Do not fabricate word-level confidence scores when the provider does not provide them.
+
+## 6. Speaker identification
+
+Implement speaker diarization when the selected provider or local pipeline supports it.
+
+Label speakers initially as:
+- Speaker 1
+- Speaker 2
+- Additional speakers as necessary
+
+Allow the user to assign roles such as Teacher, Parent/Guardian, or Other.
+
+Do not automatically assume that Speaker 1 is the teacher. Let users rename speakers after listening to the recording.
+
+Keep speaker labels consistent throughout the transcript, including across audio chunks.
+
+If speaker identification is unreliable, state that speaker roles need review rather than presenting guesses as facts.
+
+## 7. Short PTM summary
+
+This is the most important feature after transcription.
+
+The default summary should be concise and easy for a teacher to read in approximately 30–60 seconds.
+
+Use this structure:
+
+**Student:** Confirmed name, or "Not identified"
+
+**Meeting summary:** Two to five concise sentences describing the main discussion.
+
+**Academic performance:** Subjects or learning areas discussed, with observations supported by the transcript.
+
+**Strengths:** Positive feedback explicitly mentioned in the meeting.
+
+**Concerns:** Learning difficulties, behavior issues, attendance, homework, or other concerns actually discussed.
+
+**Agreed actions:** Specific next steps, who is responsible, and deadlines if mentioned.
+
+**Important follow-up:** Any unresolved question or matter requiring another meeting.
+
+Rules:
+- Do not include every sentence from the transcript in the summary.
+- Do not produce lengthy psychological or behavioral assessments.
+- Do not invent academic marks, percentages, rankings, diagnoses, or commitments.
+- Do not turn a teacher's suggestion into a confirmed agreement.
+- If a category was not discussed, omit it or write "Not discussed".
+- Distinguish clearly between a concern raised by a parent and an observation reported by a teacher.
+- Preserve important Hindi or Hinglish context accurately.
+- Generate the summary only after reviewing the completed transcript.
+- If the transcript is incomplete or unreliable, warn the user that the summary may be incomplete.
+
+## 8. Scoring and confidence
+
+Do not create an arbitrary overall accuracy percentage.
+
+Show separate indicators for:
+- Audio quality, when measurable.
+- Transcription confidence, only when supported by a reliable model score or clearly labeled as an estimate.
+- Student name verification status.
+- Speaker assignment status.
+- Transcript review status.
+
+If a transcription confidence score is unavailable, use transparent labels such as "Needs review" rather than pretending to know the model's accuracy.
+
+Allow users to filter uncertain segments and jump directly to their timestamps in the audio.
+
+## 9. User interface
+
+Create a polished, professional application with a simple workflow.
+
+### Dashboard
+- New PTM transcription
+- Recent meetings
+- Student roster
+- Settings
+
+### Processing screen
+Show the current stage:
+1. Audio loaded
+2. Audio prepared
+3. Transcription in progress
+4. Transcript ready
+5. Summary generated
+
+Display real progress where possible. Do not show fake progress percentages.
+
+### Meeting results
+Provide separate tabs:
+- Summary
+- Full Transcript
+- Review Uncertain Words
+- Action Items
+
+Allow the user to play the audio while following the transcript.
+
+Clicking a timestamp should jump to the corresponding audio position.
+
+Allow manual editing of the transcript and summary.
+
+Add buttons to:
+- Copy summary
+- Copy full transcript
+- Download transcript as TXT
+- Export summary as PDF
+- Export transcript with timestamps as TXT or SRT where supported
+
+## 10. Privacy and data management
+
+PTM recordings may contain sensitive information about children.
+
+Requirements:
+- Local processing should be the default.
+- Clearly warn users before sending recordings to an external API.
+- Do not send audio to external providers without the user's explicit selection.
+- Store files locally by default.
+- Provide a delete-meeting option that removes its audio, transcript, summary, and associated metadata.
+- Do not use meeting data for training.
+- Do not log audio contents, transcripts, API keys, or sensitive student information.
+- Explain any limitations of local deletion or cloud-provider retention.
+- Do not expose recordings through public URLs.
+
+## 11. Testing and reliability
+
+Test the entire application, not just whether the frontend renders.
+
+Include:
+- Hindi-only audio
+- English-only audio
+- Hinglish audio
+- Similar-sounding student names
+- Multiple speakers
+- Long recordings requiring chunking
+- Silent or corrupted files
+- Unclear audio
+- Provider timeout or API failure
+- Incorrect student-name correction
+- Summary generation from a partially reviewed transcript
+
+Verify that:
+- The transcript preserves the original language.
+- The summary does not invent facts.
+- Student names remain unconfirmed until verified.
+- Chunk boundaries do not create repeated sentences.
+- The local workflow can run without an API key.
+- Optional provider integrations fail gracefully.
+
+Provide automated tests for core functionality and a sample test dataset that contains no real student information.
+
+## 12. Development process and deliverables
+
+First, inspect the development environment and choose an architecture that is realistic for the available hardware and free services.
+
+Then:
+1. Build a working end-to-end MVP.
+2. Implement transcription before adding advanced features.
+3. Add summary generation and name verification.
+4. Build the UI and export functionality.
+5. Test the complete workflow.
+6. Fix errors instead of leaving TODO placeholders.
+7. Document installation, startup, troubleshooting, and configuration.
+8. Provide a sample environment configuration without real secrets.
+9. Explain how to run the application locally on macOS.
+10. List any features that remain incomplete or have provider-specific limitations.
+
+Prefer a simple, reliable application over unnecessary complexity.
+
+The final deliverable must be a usable application, not merely a landing page, design prototype, or demonstration with hardcoded transcript data.

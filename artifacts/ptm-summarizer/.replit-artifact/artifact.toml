@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "PTM Meeting Summarizer"
+description = "A privacy-first parent–teacher meeting workspace that transcribes recordings locally when available, verifies student names against a roster, and creates transcript-grounded summaries with reviewable actions and export tools."
+version = "1.0.0"
+id = "artifacts/ptm-summarizer"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18219
+
+[services.development]
+run = "pnpm --filter @workspace/ptm-summarizer run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ptm-summarizer", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/ptm-summarizer/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18219"
+BASE_PATH = "/"

@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: transcription
+    description: Optional server-side speech-to-text providers
 paths:
   /healthz:
     get:
@@ -24,6 +26,62 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /transcription/providers:
+    get:
+      operationId: getTranscriptionProviders
+      tags: [transcription]
+      summary: List optional cloud transcription providers
+      description: Reports which server-side providers are configured. Local browser transcription is not reported here.
+      responses:
+        "200":
+          description: Provider availability and supported features
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranscriptionProviderList"
+  /transcription/{provider}:
+    post:
+      operationId: transcribeWithProvider
+      tags: [transcription]
+      summary: Transcribe a recording using an explicitly selected cloud provider
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [groq, xai]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/CloudTranscriptionInput"
+      responses:
+        "200":
+          description: Normalized transcript from the selected provider
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranscriptionResult"
+        "400":
+          description: Invalid file or request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: Recording exceeds the app's upload limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Provider is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +91,113 @@ components:
           type: string
       required:
         - status
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    TranscriptionProvider:
+      type: object
+      properties:
+        id:
+          type: string
+          enum: [groq, xai]
+        name:
+          type: string
+        model:
+          type: string
+        configured:
+          type: boolean
+        maxUploadBytes:
+          type: integer
+        supportsWordTimestamps:
+          type: boolean
+        supportsDiarization:
+          type: boolean
+        pricingUrl:
+          type: string
+      required:
+        - id
+        - name
+        - model
+        - configured
+        - maxUploadBytes
+        - supportsWordTimestamps
+        - supportsDiarization
+        - pricingUrl
+    TranscriptionProviderList:
+      type: object
+      properties:
+        providers:
+          type: array
+          items:
+            $ref: "#/components/schemas/TranscriptionProvider"
+      required: [providers]
+    CloudTranscriptionInput:
+      type: object
+      properties:
+        file:
+          type: string
+          format: binary
+        confirmExternalProcessing:
+          type: boolean
+          description: Explicit user confirmation that this recording may be uploaded to the selected provider.
+        language:
+          type: string
+          description: Optional language hint, e.g. hi or en. Omit for automatic detection.
+        studentNames:
+          type: array
+          items:
+            type: string
+          description: Optional roster vocabulary hints; never used to confirm a student's identity.
+        diarize:
+          type: boolean
+          description: Request speaker separation when supported by the selected provider.
+      required: [file, confirmExternalProcessing]
+    TranscriptionSegment:
+      type: object
+      properties:
+        start:
+          type: number
+        end:
+          type: number
+        text:
+          type: string
+        confidence:
+          type: ["number", "null"]
+        speakerId:
+          type: ["string", "null"]
+      required: [start, end, text, confidence, speakerId]
+    TranscriptionResult:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum: [groq, xai]
+        model:
+          type: string
+        text:
+          type: string
+        language:
+          type: ["string", "null"]
+        durationSeconds:
+          type: ["number", "null"]
+        segments:
+          type: array
+          items:
+            $ref: "#/components/schemas/TranscriptionSegment"
+        supportsDiarization:
+          type: boolean
+        confidenceAvailable:
+          type: boolean
+      required:
+        - provider
+        - model
+        - text
+        - language
+        - durationSeconds
+        - segments
+        - supportsDiarization
+        - confidenceAvailable
 
